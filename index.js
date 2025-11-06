@@ -22,7 +22,6 @@ module.exports = async (req, res) => {
     });
 
     const page = await browser.newPage();
-    // Set a user agent to mimic a real browser
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36');
     
     await page.goto(url, { waitUntil: 'networkidle2' });
@@ -45,20 +44,36 @@ module.exports = async (req, res) => {
             return '';
         };
 
-        const titleSelectors = ['h1', '#productTitle', '.product-title', '.pr-in-nm'];
-        const priceSelectors = ['.price', '.a-price-whole', '.prc-slg', '.Price-amount'];
-        const imageSelectors = ['img[data-main-image]', '#landingImage', '.gallery-container img', '.product-image-container img'];
+        // --- Domain-Specific Selectors ---
+        const domain = window.location.hostname;
+        let nameSelectors, priceSelectors, imageSelectors;
+
+        if (domain.includes('amazon')) {
+            nameSelectors = ['#productTitle'];
+            // Amazon often hides the real price in a visually hidden span for screen readers
+            priceSelectors = ['.a-price[data-a-color="price"] .a-offscreen', '.priceToPay .a-offscreen'];
+            imageSelectors = ['#landingImage', '#imgTagWrapperId img'];
+        } else {
+            // Generic fallback for other stores
+            nameSelectors = ['h1', '.product-title', '.pr-in-nm'];
+            priceSelectors = ['.price', '.Price-amount', '.prc-slg'];
+            imageSelectors = ['img[data-main-image]', '.gallery-container img'];
+        }
 
         return {
-            name: query(titleSelectors),
+            name: query(nameSelectors),
             price: query(priceSelectors),
             imageUrl: queryImage(imageSelectors),
-            availableSizes: [], // We can add selectors for these later
-            availableColors: []
+            availableSizes: [], // Placeholder for future enhancement
+            availableColors: []  // Placeholder for future enhancement
         };
     });
 
-    // Send the rich, structured data back to our app!
+    // If we couldn't find a name or a price, it's probably not a product page.
+    if (!productData.name || !productData.price) {
+        return res.status(404).send({ message: 'Could not automatically determine product details.' });
+    }
+
     res.status(200).send(productData);
 
   } catch (error) {
