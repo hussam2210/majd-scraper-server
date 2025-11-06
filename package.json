@@ -1,0 +1,9 @@
+{
+  "name": "majd-scraper-server",  "version": "1.0.0",
+  "description": "Smart scraper for Majd Express App",
+  "main": "index.js",
+  "dependencies": {
+    "@sparticuz/chromium": "^119.0.0",
+    "puppeteer-core": "^21.5.0"
+  }
+}
